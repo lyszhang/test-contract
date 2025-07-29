@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract VulnerableDonation {
+contract VulnerableDonation222 {
     mapping(address => uint256) public donations;
 
     // 捐赠函数
