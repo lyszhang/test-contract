@@ -1,44 +1,28 @@
-// SPDX-License-Identifier: AGPL-3.0
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract Ownable {
-    address public owner = msg.sender;
+contract VulnerableDonation {
+    mapping(address => uint256) public donations;
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Ownable: Caller is not the owner.");
-        _;
-    }
-}
-
-contract Pausable is Ownable {
-    bool private _paused;
-
-    function paused() public view returns (bool) {
-        return _paused;
+    // 捐赠函数
+    function donate() public payable {
+        donations[msg.sender] += msg.value;
     }
 
-    function pause() public onlyOwner {
-        _paused = true;
+    // 提款函数：允许捐赠者取回自己的捐款
+    function withdraw() public {
+        uint256 amount = donations[msg.sender];
+        require(amount > 0, "No funds to withdraw");
+
+        // 关键漏洞：先转账，再更新余额（重入风险）
+        (bool sent, ) = msg.sender.call{value: amount}("");
+        require(sent, "Failed to send Ether");
+
+        donations[msg.sender] = 0;
     }
 
-    function resume() public onlyOwner {
-        _paused = false;
-    }
-
-    modifier whenNotPaused() {
-        require(!_paused, "Pausable: Contract is paused.");
-        _;
-    }
-}
-
-contract Token is Ownable, Pausable {
-    mapping(address => uint256) public balances;
-
-    function transfer(address to, uint256 value) public whenNotPaused {
-        // unchecked to save gas
-        unchecked {
-            balances[msg.sender] -= value;
-            balances[to] += value;
-        }
+    // 查询合约余额
+    function getBalance() public view returns (uint256) {
+        return address(this).balance;
     }
 }
